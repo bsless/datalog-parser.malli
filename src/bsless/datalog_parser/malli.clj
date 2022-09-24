@@ -58,7 +58,7 @@
    ::find-scalar [:catn [:find-elem ::find-elem] [:_ [:= '.]]],
 
 ;;; find-tuple = [find-elem+]
-   ::find-tuple [:+ ::find-elem],
+   ::find-tuple [:schema [:+ ::find-elem],]
 
 ;;; find-elem                  = (variable | pull-expr | aggregate)
    ::find-elem [:altn
@@ -266,13 +266,14 @@
    ::bind-scalar ::variable,
 
 ;;; bind-tuple = [ (variable | '_')+]
-   ::bind-tuple [:+
-                 [:altn
-                  [:variable ::variable]
-                  [:blank ::blank]]],
+   ::bind-tuple [:schema
+                 [:+
+                  [:altn
+                   [:variable ::variable]
+                   [:blank ::blank]]],]
 
 ;;; bind-coll = [variable '...']
-   ::bind-coll [:catn [:variable ::variable] [:_ [:= '...]]],
+   ::bind-coll [:schema [:catn [:variable ::variable] [:_ [:= '...]]],]
 
 ;;; bind-rel = [ [(variable | '_')+] ]
    ::bind-rel [:tuple
