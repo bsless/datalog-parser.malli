@@ -1,3 +1,5 @@
+[![Clojars Project](https://img.shields.io/clojars/v/io.github.bsless/datalog-parser.malli.svg)](https://clojars.org/io.github.bsless/datalog-parser.malli)
+
 # io.github.bsless/datalog-parser.malli
 
 1-1 translation of datalog query spec based on the official Datomic
