@@ -2,6 +2,8 @@
   (:require [clojure.test :as t]
             [bsless.datalog-parser.malli :as sut :refer [parse]]))
 
+(def parse-pull (sut/parser ::sut/pull-pattern))
+
 (t/deftest conform
   (t/testing "find where"
     (t/is
@@ -135,6 +137,8 @@
      (= {:find-spec
          {:_ :find,
           :find [:find-coll {:find-elem [:variable '?release-name], :_ '...}]},
+         :return-map? nil,
+         :with-clause? nil,
          :inputs?
          {:_ :in,
           :inputs [[:src-var '$] [:binding [:bind-scalar '?artist-name]]]},
@@ -143,19 +147,22 @@
            :clauses
            [[:expression-clause
              [:data-pattern
-              {:pattern
+              {:src-var? nil
+               :pattern
                [[:variable '?artist]
                 [:constant [:keyword :artist/name]]
                 [:variable '?artist-name]]}]]
             [:expression-clause
              [:data-pattern
-              {:pattern
+              {:src-var? nil
+               :pattern
                [[:variable '?release]
                 [:constant [:keyword :release/artists]]
                 [:variable '?artist]]}]]
             [:expression-clause
              [:data-pattern
-              {:pattern
+              {:src-var? nil
+               :pattern
                [[:variable '?release]
                 [:constant [:keyword :release/name]]
                 [:variable '?release-name]]}]]]}]}
@@ -168,40 +175,46 @@
 
   (t/testing "find tuple"
     (t/is
-     (= '{:find-spec
-          {:_ :find,
-           :find
-           [:find-tuple
-            [[:variable ?year] [:variable ?month] [:variable ?day]]]},
-          :inputs?
-          {:_ :in, :inputs [[:src-var $] [:binding [:bind-scalar ?name]]]},
-          :where-clauses?
-          [{:_ :where,
-            :clauses
-            [[:expression-clause
-              [:data-pattern
-               {:pattern
-                [[:variable ?artist]
-                 [:constant :artist/name]
-                 [:variable ?name]]}]]
-             [:expression-clause
-              [:data-pattern
-               {:pattern
-                [[:variable ?artist]
-                 [:constant :artist/startDay]
-                 [:variable ?day]]}]]
-             [:expression-clause
-              [:data-pattern
-               {:pattern
-                [[:variable ?artist]
-                 [:constant :artist/startMonth]
-                 [:variable ?month]]}]]
-             [:expression-clause
-              [:data-pattern
-               {:pattern
-                [[:variable ?artist]
-                 [:constant :artist/startYear]
-                 [:variable ?year]]}]]]}]}
+     (= {:find-spec
+         {:_ :find,
+          :find
+          [:find-tuple
+           [[:variable '?year] [:variable '?month] [:variable '?day]]]},
+         :return-map? nil,
+         :with-clause? nil
+         :inputs?
+         {:_ :in, :inputs [[:src-var '$] [:binding [:bind-scalar '?name]]]},
+         :where-clauses?
+         [{:_ :where,
+           :clauses
+           [[:expression-clause
+             [:data-pattern
+              {:src-var? nil
+               :pattern
+               [[:variable '?artist]
+                [:constant [:keyword :artist/name]]
+                [:variable '?name]]}]]
+            [:expression-clause
+             [:data-pattern
+              {:src-var? nil
+               :pattern
+               [[:variable '?artist]
+                [:constant [:keyword :artist/startDay]]
+                [:variable '?day]]}]]
+            [:expression-clause
+             [:data-pattern
+              {:src-var? nil
+               :pattern
+               [[:variable '?artist]
+                [:constant [:keyword :artist/startMonth]]
+                [:variable '?month]]}]]
+            [:expression-clause
+             [:data-pattern
+              {:src-var? nil
+               :pattern
+               [[:variable '?artist]
+                [:constant [:keyword :artist/startYear]]
+                [:variable '?year]]}]]]}]}
         (parse
          '[:find [?year ?month ?day]
            :in $ ?name
@@ -214,6 +227,8 @@
     (t/is
      (= '{:find-spec
           {:_ :find, :find [:find-scalar {:find-elem [:variable ?year], :_ .}]},
+          :return-map? nil,
+          :with-clause? nil
           :inputs?
           {:_ :in, :inputs [[:src-var $] [:binding [:bind-scalar ?name]]]},
           :where-clauses?
@@ -221,15 +236,17 @@
             :clauses
             [[:expression-clause
               [:data-pattern
-               {:pattern
+               {:src-var? nil
+                :pattern
                 [[:variable ?artist]
-                 [:constant :artist/name]
+                 [:constant [:keyword :artist/name]]
                  [:variable ?name]]}]]
              [:expression-clause
               [:data-pattern
-               {:pattern
+               {:src-var? nil
+                :pattern
                 [[:variable ?artist]
-                 [:constant :artist/startYear]
+                 [:constant [:keyword :artist/startYear]]
                  [:variable ?year]]}]]]}]}
         (parse
          '[:find ?year .
@@ -239,29 +256,35 @@
 
   (t/testing "find scalar expression not"
     (t/is
-     (= '{:find-spec
-          {:_ :find,
-           :find
-           [:find-scalar
-            {:find-elem
-             [:aggregate
-              {:aggregate-fn-name count, :fn-args [[:variable ?eid]]}],
-             :_ .}]},
-          :where-clauses?
-          [{:_ :where,
-            :clauses
-            [[:expression-clause
-              [:data-pattern
-               {:pattern [[:variable ?eid] [:constant :artist/name]]}]]
-             [:not-clause
-              {:_ not,
-               :clauses
-               [[:expression-clause
-                 [:data-pattern
-                  {:pattern
-                   [[:variable ?eid]
-                    [:constant :artist/country]
-                    [:constant :country/CA]]}]]]}]]}]}
+     (= {:find-spec
+         {:_ :find,
+          :find
+          [:find-scalar
+           {:find-elem
+            [:aggregate
+             {:aggregate-fn-name 'count, :fn-args [[:variable '?eid]]}],
+            :_ '.}]},
+         :return-map? nil,
+         :with-clause? nil,
+         :inputs? nil
+         :where-clauses?
+         [{:_ :where,
+           :clauses
+           [[:expression-clause
+             [:data-pattern
+              {:src-var? nil
+               :pattern [[:variable '?eid] [:constant [:keyword :artist/name]]]}]]
+            [:not-clause
+             {:src-var? nil
+              :_ 'not,
+              :clauses
+              [[:expression-clause
+                [:data-pattern
+                 {:src-var? nil
+                  :pattern
+                  [[:variable '?eid]
+                   [:constant [:keyword :artist/country]]
+                   [:constant [:keyword :country/CA]]]}]]]}]]}]}
         (parse
          '[:find (count ?eid) .
            :where
@@ -271,36 +294,43 @@
 
   (t/testing "not join"
     (t/is
-     (= '{:find-spec
+     (= {:find-spec
           {:_ :find,
            :find
            [:find-scalar
             {:find-elem
              [:aggregate
-              {:aggregate-fn-name count, :fn-args [[:variable ?artist]]}],
-             :_ .}]},
+              {:aggregate-fn-name 'count, :fn-args [[:variable '?artist]]}],
+             :_ '.}]},
+         :return-map? nil,
+         :with-clause? nil,
+         :inputs? nil
           :where-clauses?
           [{:_ :where,
             :clauses
             [[:expression-clause
               [:data-pattern
-               {:pattern [[:variable ?artist] [:constant :artist/name]]}]]
+               {:src-var? nil
+                :pattern [[:variable '?artist] [:constant [:keyword :artist/name]]]}]]
              [:not-join-clause
-              {:_ not-join,
-               :variables [?artist],
+              {:src-var? nil
+               :_ 'not-join,
+               :variables ['?artist],
                :clauses
                [[:expression-clause
                  [:data-pattern
-                  {:pattern
-                   [[:variable ?release]
-                    [:constant :release/artists]
-                    [:variable ?artist]]}]]
+                  {:src-var? nil
+                   :pattern
+                   [[:variable '?release]
+                    [:constant [:keyword :release/artists]]
+                    [:variable '?artist]]}]]
                 [:expression-clause
                  [:data-pattern
-                  {:pattern
-                   [[:variable ?release]
-                    [:constant :release/year]
-                    [:constant 1970]]}]]]}]]}]}
+                  {:src-var? nil
+                   :pattern
+                   [[:variable '?release]
+                    [:constant [:keyword :release/year]]
+                    [:constant [:number 1970]]]}]]]}]]}]}
         (parse
          '[:find (count ?artist) .
            :where [?artist :artist/name]
@@ -310,27 +340,30 @@
 
   (t/testing "pred expr"
     (t/is
-     (= '{:find-spec
-          {:_ :find, :find [:find-rel [[:variable ?name] [:variable ?year]]]},
-          :where-clauses?
-          [{:_ :where,
-            :clauses
-            [[:expression-clause
-              [:data-pattern
-               {:pattern
-                [[:variable ?artist]
-                 [:constant :artist/name]
-                 [:variable ?name]]}]]
-             [:expression-clause
-              [:data-pattern
-               {:pattern
-                [[:variable ?artist]
-                 [:constant :artist/startYear]
-                 [:variable ?year]]}]]
-             [:expression-clause
-              [:pred-expr
-               {:expr
-                {:pred <, :fn-args [[:variable ?year] [:constant 1600]]}}]]]}]}
+     (= {:find-spec
+         {:_ :find, :find [:find-rel [[:variable '?name] [:variable '?year]]]},
+         :return-map? nil, :with-clause? nil, :inputs? nil
+         :where-clauses?
+         [{:_ :where,
+           :clauses
+           [[:expression-clause
+             [:data-pattern
+              {:src-var? nil
+               :pattern
+               [[:variable '?artist]
+                [:constant [:keyword :artist/name]]
+                [:variable '?name]]}]]
+            [:expression-clause
+             [:data-pattern
+              {:src-var? nil
+               :pattern
+               [[:variable '?artist]
+                [:constant [:keyword :artist/startYear]]
+                [:variable '?year]]}]]
+            [:expression-clause
+             [:pred-expr
+              {:expr
+               {:pred '<, :fn-args [[:variable '?year] [:constant [:number 1600]]]}}]]]}]}
         (parse
          '[:find ?name ?year
            :where [?artist :artist/name ?name]
@@ -339,44 +372,50 @@
 
   (t/testing "fn expr with bindings"
     (t/is
-     (= '{:find-spec
-          {:_ :find,
-           :find [:find-rel [[:variable ?track-name] [:variable ?minutes]]]},
-          :inputs?
-          {:_ :in,
-           :inputs [[:src-var $] [:binding [:bind-scalar ?artist-name]]]},
-          :where-clauses?
-          [{:_ :where,
-            :clauses
-            [[:expression-clause
-              [:data-pattern
-               {:pattern
-                [[:variable ?artist]
-                 [:constant :artist/name]
-                 [:variable ?artist-name]]}]]
-             [:expression-clause
-              [:data-pattern
-               {:pattern
-                [[:variable ?track]
-                 [:constant :track/artists]
-                 [:variable ?artist]]}]]
-             [:expression-clause
-              [:data-pattern
-               {:pattern
-                [[:variable ?track]
-                 [:constant :track/duration]
-                 [:variable ?millis]]}]]
-             [:expression-clause
-              [:fn-expr
-               {:expr
-                {:fn quot, :fn-args [[:variable ?millis] [:constant 60000]]},
-                :binding [:bind-scalar ?minutes]}]]
-             [:expression-clause
-              [:data-pattern
-               {:pattern
-                [[:variable ?track]
-                 [:constant :track/name]
-                 [:variable ?track-name]]}]]]}]}
+     (= {:find-spec
+         {:_ :find,
+          :find [:find-rel [[:variable '?track-name] [:variable '?minutes]]]},
+         :return-map? nil,
+         :with-clause? nil
+         :inputs?
+         {:_ :in,
+          :inputs [[:src-var '$] [:binding [:bind-scalar '?artist-name]]]},
+         :where-clauses?
+         [{:_ :where,
+           :clauses
+           [[:expression-clause
+             [:data-pattern
+              {:src-var? nil
+               :pattern
+               [[:variable '?artist]
+                [:constant [:keyword :artist/name]]
+                [:variable '?artist-name]]}]]
+            [:expression-clause
+             [:data-pattern
+              {:src-var? nil
+               :pattern
+               [[:variable '?track]
+                [:constant [:keyword :track/artists]]
+                [:variable '?artist]]}]]
+            [:expression-clause
+             [:data-pattern
+              {:src-var? nil
+               :pattern
+               [[:variable '?track]
+                [:constant [:keyword :track/duration]]
+                [:variable '?millis]]}]]
+            [:expression-clause
+             [:fn-expr
+              {:expr
+               {:fn 'quot, :fn-args [[:variable '?millis] [:constant [:number 60000]]]},
+               :binding [:bind-scalar '?minutes]}]]
+            [:expression-clause
+             [:data-pattern
+              {:src-var? nil
+               :pattern
+               [[:variable '?track]
+                [:constant [:keyword :track/name]]
+                [:variable '?track-name]]}]]]}]}
         (parse
          '[:find ?track-name ?minutes
            :in $ ?artist-name
@@ -392,7 +431,7 @@
          [:attr-expr
           {:attr-name :track/_artists,
            :attr-options [[:limit-expr {:_ :limit, :limit 10}]]}]]
-        (parse '[:artist/name (:track/_artists :limit 10)]))))
+        (parse-pull '[:artist/name (:track/_artists :limit 10)]))))
 
   (t/testing "pull map"
     (t/is
@@ -400,7 +439,7 @@
           [:map-spec
            {[:attr-name :track/artists]
             [:pull-pattern [[:attr-name :db/id] [:attr-name :artist/name]]]}]]
-        (parse '[:track/name {:track/artists [:db/id :artist/name]}])))))
+        (parse-pull '[:track/name {:track/artists [:db/id :artist/name]}])))))
 
 (comment
   (parse
@@ -428,14 +467,14 @@
      :keys foo
      :in $ ?fname ?lname
      :where [?e :user/firstName ?fname]
-     [?e :user/lastName ?lname]]))
+     [?e :user/lastName ?lname]])
 
 
-(parse
- '[:find [?release-name ...]
-   :in $ ?artist-name
-   ;; :where
-   ;; [?artist :artist/name ?artist-name]
-   ;; [?release :release/artists ?artist]
-   ;; [?release :release/name ?release-name]
-   ])
+  (parse
+   '[:find [?release-name ...]
+     :in $ ?artist-name
+     :where
+     [?artist :artist/name ?artist-name]
+     [?release :release/artists ?artist]
+     [?release :release/name ?release-name]
+     ]))
