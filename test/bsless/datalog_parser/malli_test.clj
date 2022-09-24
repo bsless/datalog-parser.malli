@@ -21,6 +21,7 @@
         (parse
          '[:find ?e
            :where [?e :age 42]]))))
+
   (t/testing "where blank"
     (t/is
      (= {:find-spec {:_ :find, :find [:find-rel [[:variable '?x]]]},
@@ -37,18 +38,66 @@
         (parse
          '[:find ?x
            :where [_ :likes ?x]]))))
+
   (t/testing "src var"
-    (parse
-     '[:find ?release-name
-       :in $
-       :where [$ _ :release/name ?release-name]]))
+    (t/is
+     (= '{:find-spec {:_ :find, :find [:find-rel [[:variable ?release-name]]]},
+          :return-map? nil,
+          :with-clause? nil,
+          :inputs? {:_ :in, :inputs [[:src-var $]]},
+          :where-clauses?
+          [{:_ :where,
+            :clauses
+            [[:expression-clause
+              [:data-pattern
+               {:src-var? $,
+                :pattern
+                [[:blank _]
+                 [:constant [:keyword :release/name]]
+                 [:variable ?release-name]]}]]]}]}
+        (parse
+         '[:find ?release-name
+           :in $
+           :where [$ _ :release/name ?release-name]]))))
+
   (t/testing "in"
-    (parse
-     '[:find ?release-name
-       :in $ ?artist-name
-       :where [?artist :artist/name ?artist-name]
-       [?release :release/artists ?artist]
-       [?release :release/name ?release-name]]))
+    (t/is (= '{:find-spec {:_ :find, :find [:find-rel [[:variable ?release-name]]]},
+               :return-map? nil,
+               :with-clause? nil,
+               :inputs?
+               {:_ :in,
+                :inputs [[:src-var $] [:binding [:bind-scalar ?artist-name]]]},
+               :where-clauses?
+               [{:_ :where,
+                 :clauses
+                 [[:expression-clause
+                   [:data-pattern
+                    {:src-var? nil,
+                     :pattern
+                     [[:variable ?artist]
+                      [:constant [:keyword :artist/name]]
+                      [:variable ?artist-name]]}]]
+                  [:expression-clause
+                   [:data-pattern
+                    {:src-var? nil,
+                     :pattern
+                     [[:variable ?release]
+                      [:constant [:keyword :release/artists]]
+                      [:variable ?artist]]}]]
+                  [:expression-clause
+                   [:data-pattern
+                    {:src-var? nil,
+                     :pattern
+                     [[:variable ?release]
+                      [:constant [:keyword :release/name]]
+                      [:variable ?release-name]]}]]]}]}
+             (parse
+              '[:find ?release-name
+                :in $ ?artist-name
+                :where [?artist :artist/name ?artist-name]
+                [?release :release/artists ?artist]
+                [?release :release/name ?release-name]]))))
+
   (t/testing "in pattern"
     (t/is
      (=
@@ -290,7 +339,6 @@
            :where
            [?eid :artist/name]
            (not [?eid :artist/country :country/CA])]))))
-
 
   (t/testing "not join"
     (t/is
